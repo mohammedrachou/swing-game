@@ -1,63 +1,44 @@
-/**
- * player.js
- * ─────────────────────────────────────────────────────
- * Player mesh + grapple rope visuals.
- * Reads from physics.state — never writes physics data.
- *
- * Rope visibility goals:
- * - ALWAYS visible (draw on top of buildings)
- * - Thick + bright (uses TubeGeometry instead of thin Line)
- * - Works in first-person (rope still shows)
- */
-
 import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.js';
-
-// ── Module state ──────────────────────────────────────────────────────────────
 
 let _scene;
 let _playerGroup;
 
-// Rope visuals per side
 const _rope = {
   left:  { mesh: null, mat: null },
   right: { mesh: null, mat: null },
 };
 
-// Colors (still different per side, but bright)
+// Bright colors (easy to see)
 const ROPE_COLORS = {
-  left:  0x7dfff1,
-  right: 0xff9ad0,
+  left:  0x00ffff,
+  right: 0xff00ff,
 };
 
-// Rope thickness (world units)
-const ROPE_RADIUS = 0.06; // increase if you want thicker (0.08–0.12)
-
-// ── Public API ────────────────────────────────────────────────────────────────
+// Thicker 3D rope
+const ROPE_RADIUS = 0.10; // <- make bigger if you want (0.12, 0.14)
 
 export function init(scene) {
   _scene = scene;
   _playerGroup = _buildPlayerMesh();
   scene.add(_playerGroup);
 
-  // Create rope meshes (TubeGeometry) so thickness works in browsers
   for (const side of ['left', 'right']) {
     const mat = new THREE.MeshBasicMaterial({
       color: ROPE_COLORS[side],
       transparent: true,
-      opacity: 0.95,
+      opacity: 1.0,
     });
 
-    // Always visible on top
+    // Always visible (not hidden by buildings)
     mat.depthTest = false;
     mat.depthWrite = false;
 
-    // Start with a tiny rope (will be replaced each frame)
+    // Placeholder geometry
     const geom = _makeRopeGeometry(new THREE.Vector3(), new THREE.Vector3(0, 0.01, 0));
     const mesh = new THREE.Mesh(geom, mat);
 
-    // Draw last
-    mesh.renderOrder = 999;
     mesh.visible = false;
+    mesh.renderOrder = 999;
 
     scene.add(mesh);
     _rope[side].mesh = mesh;
@@ -68,30 +49,28 @@ export function init(scene) {
 export function update(physicsState, camMode) {
   const { pos, vel, grapple } = physicsState;
 
-  // Sync player body
   _playerGroup.position.copy(pos);
 
-  // Orient body toward velocity direction
+  // Face velocity (3rd person only)
   if (vel.lengthSq() > 1) {
     _playerGroup.lookAt(pos.clone().add(vel.clone().normalize()));
   }
 
-  // Hide body in first-person, but DO NOT hide rope
+  // Hide body in first-person, BUT keep ropes visible
   _playerGroup.visible = camMode !== 'first';
 
-  // Update rope meshes
   for (const side of ['left', 'right']) {
     const g = grapple[side];
     const ropeMesh = _rope[side].mesh;
 
-    if (!g.active) {
+    if (!g || !g.active) {
       ropeMesh.visible = false;
       continue;
     }
 
     ropeMesh.visible = true;
 
-    // Replace geometry each frame (simple + reliable)
+    // Rebuild rope geometry each frame (simple + reliable)
     ropeMesh.geometry.dispose();
     ropeMesh.geometry = _makeRopeGeometry(pos.clone(), g.anchor.clone());
   }
@@ -99,7 +78,7 @@ export function update(physicsState, camMode) {
 
 export function flashAnchor(pos, side) {
   const mesh = new THREE.Mesh(
-    new THREE.SphereGeometry(0.7, 8, 6),
+    new THREE.SphereGeometry(0.8, 10, 8),
     new THREE.MeshBasicMaterial({ color: ROPE_COLORS[side] })
   );
   mesh.position.copy(pos);
@@ -116,19 +95,21 @@ export function flashAnchor(pos, side) {
       return;
     }
     const t = life / 0.25;
-    mesh.scale.setScalar(0.25 + t * 0.9);
+    mesh.scale.setScalar(0.3 + t * 0.9);
     requestAnimationFrame(tick);
   };
   tick();
 }
 
-// ── Private helpers ───────────────────────────────────────────────────────────
+// ---- helpers ----
 
 function _makeRopeGeometry(a, b) {
-  // Small curve from a to b
-  const curve = new THREE.CatmullRomCurve3([a, b]);
-  // segments, radius, radial segments
-  return new THREE.TubeGeometry(curve, 12, ROPE_RADIUS, 8, false);
+  // Slight curve so it looks more “rope-like”
+  const mid = a.clone().lerp(b, 0.5);
+  mid.y -= 0.3; // tiny sag
+
+  const curve = new THREE.CatmullRomCurve3([a, mid, b]);
+  return new THREE.TubeGeometry(curve, 18, ROPE_RADIUS, 10, false);
 }
 
 function _buildPlayerMesh() {
