@@ -1,115 +1,52 @@
-/**
- * input.js
- * ─────────────────────────────────────────────────────
- * Centralised input handler.
- *
- * PUBLIC API
- * ──────────
- * init(domElement)          — attach all listeners
- * getKeys()                 → { [code]: boolean }  snapshot of held keys
- * consumeMouseDelta()       → { dx, dy }  pixels moved since last call (resets after read)
- * onAction(name, callback)  — subscribe to named one-shot actions
- *                             action names: 'grappleLeft', 'grappleRight',
- *                                           'releaseLeft', 'releaseRight',
- *                                           'boost', 'toggleCamera'
- * requestPointerLock()      — convenience wrapper
- */
+// input.js — clean pointer lock + input state
 
-const _keys = {};              // currently held keys  { KeyCode: true }
-let   _dx = 0, _dy = 0;       // accumulated mouse delta (reset on read)
-const _listeners = {};         // action → [callback, ...]
+let _keys = new Set();
+let _mouseDX = 0;
+let _mouseDY = 0;
+let _locked = false;
 
-// ── Internal helpers ──────────────────────────────────────────────────────────
+export function init(domElementForPointerLock = document.body) {
+  // Keyboard
+  window.addEventListener('keydown', (e) => _keys.add(e.code));
+  window.addEventListener('keyup', (e) => _keys.delete(e.code));
 
-function _emit(action) {
-  (_listeners[action] || []).forEach(cb => cb());
+  // Mouse move (only counts when locked)
+  window.addEventListener('mousemove', (e) => {
+    if (!_locked) return;
+    _mouseDX += e.movementX || 0;
+    _mouseDY += e.movementY || 0;
+  });
+
+  // Pointer lock state
+  document.addEventListener('pointerlockchange', () => {
+    _locked = document.pointerLockElement === domElementForPointerLock;
+  });
+
+  // Click to lock
+  domElementForPointerLock.addEventListener('click', () => {
+    if (!document.pointerLockElement) domElementForPointerLock.requestPointerLock();
+  });
+
+  // ESC unlock helper (browser does this automatically, but we track it)
+  window.addEventListener('keydown', (e) => {
+    if (e.code === 'Escape') {
+      // browser unlocks; pointerlockchange will update _locked
+    }
+  });
 }
 
-function _onKeyDown(e) {
-  if (_keys[e.code]) return;   // suppress key-repeat
-  _keys[e.code] = true;
-
-  if (e.code === 'KeyV')     _emit('toggleCamera');
-  if (e.code === 'Space')  { e.preventDefault(); _emit('boost'); }
-  if (e.code === 'KeyQ')     _emit('grappleLeft');
-  if (e.code === 'KeyE')     _emit('grappleRight');
+export function isDown(code) {
+  return _keys.has(code);
 }
 
-function _onKeyUp(e) {
-  _keys[e.code] = false;
-
-  if (e.code === 'KeyQ') _emit('releaseLeft');
-  if (e.code === 'KeyE') _emit('releaseRight');
-}
-
-function _onMouseMove(e) {
-  if (document.pointerLockElement) {
-    _dx += e.movementX;
-    _dy += e.movementY;
-  }
-}
-
-function _onMouseDown(e) {
-  if (!document.pointerLockElement) {
-    // First click: grab pointer lock instead of firing grapple
-    e.target.requestPointerLock();
-    return;
-  }
-  if (e.button === 0) _emit('grappleLeft');
-  if (e.button === 2) _emit('grappleRight');
-}
-
-function _onMouseUp(e) {
-  if (e.button === 0) _emit('releaseLeft');
-  if (e.button === 2) _emit('releaseRight');
-}
-
-// ── Public API ────────────────────────────────────────────────────────────────
-
-/**
- * Attach all event listeners.
- * @param {HTMLElement} domElement  The renderer's canvas (for pointer lock).
- */
-export function init(domElement) {
-  window.addEventListener('keydown', _onKeyDown);
-  window.addEventListener('keyup',   _onKeyUp);
-  window.addEventListener('mousemove', _onMouseMove);
-  window.addEventListener('mousedown', _onMouseDown);
-  window.addEventListener('mouseup',   _onMouseUp);
-  window.addEventListener('contextmenu', e => e.preventDefault());
-}
-
-/**
- * Read the current held-key map.
- * Keys use KeyboardEvent.code strings e.g. 'KeyW', 'Space'.
- * @returns {{ [code: string]: boolean }}
- */
-export function getKeys() {
-  return _keys;
-}
-
-/**
- * Read and reset accumulated mouse movement since last call.
- * @returns {{ dx: number, dy: number }}
- */
 export function consumeMouseDelta() {
-  const result = { dx: _dx, dy: _dy };
-  _dx = 0;
-  _dy = 0;
-  return result;
+  const dx = _mouseDX;
+  const dy = _mouseDY;
+  _mouseDX = 0;
+  _mouseDY = 0;
+  return { dx, dy };
 }
 
-/**
- * Subscribe to a one-shot action event.
- * @param {string}   action    One of the action names listed in the module header.
- * @param {Function} callback
- */
-export function onAction(action, callback) {
-  if (!_listeners[action]) _listeners[action] = [];
-  _listeners[action].push(callback);
-}
-
-/** Programmatically request pointer lock (e.g. from a start-screen click). */
-export function requestPointerLock(domElement) {
-  domElement.requestPointerLock();
+export function isPointerLocked() {
+  return _locked;
 }
