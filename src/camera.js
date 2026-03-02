@@ -3,7 +3,6 @@
  * ─────────────────────────────────────────────────────
  * Manages first-person and third-person camera modes.
  * Reads player position + velocity from physics.state.
- * Applies screen shake offset computed by fx.js.
  *
  * PUBLIC API
  * ──────────
@@ -51,9 +50,9 @@ export function update(dt, physicsState, mouseDelta, shakeOffset) {
   _pitch  = Math.max(-1.4, Math.min(1.4, _pitch)); // clamp vertical
 
   if (_mode === 'third') {
-    _updateThirdPerson(dt, physicsState, shakeOffset);
+    _updateThirdPerson(dt, physicsState);
   } else {
-    _updateFirstPerson(dt, physicsState, shakeOffset);
+    _updateFirstPerson(dt, physicsState);
   }
 }
 
@@ -74,7 +73,7 @@ export function getYaw() {
 
 // ── Private helpers ───────────────────────────────────────────────────────────
 
-function _updateThirdPerson(dt, { pos }, shakeOffset) {
+function _updateThirdPerson(dt, { pos }) {
   // Compute ideal camera position: behind + above player based on yaw
   const camDirH = new THREE.Vector3(Math.sin(_yaw), 0, Math.cos(_yaw));
 
@@ -87,24 +86,25 @@ function _updateThirdPerson(dt, { pos }, shakeOffset) {
   const alpha = 1 - Math.exp(-SETTINGS.camSpringStiffness * (1 - SETTINGS.camSpringDamping) * dt);
   _camPos.lerp(_camTarget, alpha);
 
-  _camera.position.copy(_camPos).add(shakeOffset);
+  // ✅ No screenshake (prevents motion sickness)
+  _camera.position.copy(_camPos);
   _camera.lookAt(pos.clone().add(new THREE.Vector3(0, 0.8, 0)));
 
-  // Apply partial pitch tilt
+  // Apply partial pitch tilt (small)
   _camera.rotateX(_pitch * 0.4);
 }
 
-function _updateFirstPerson(dt, { pos, vel }, shakeOffset) {
+function _updateFirstPerson(dt, { pos, vel }) {
   const headPos = pos.clone().add(new THREE.Vector3(0, 0.9, 0));
-  _camera.position.copy(headPos).add(shakeOffset);
+
+  // ✅ No screenshake (prevents motion sickness)
+  _camera.position.copy(headPos);
 
   // Full yaw + pitch quaternion
   const qYaw   = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), _yaw);
   const qPitch = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), _pitch);
   _camera.quaternion.copy(qYaw).multiply(qPitch);
 
-  // Subtle speed-based head sway (roll only, no pitch to avoid nausea)
-  const speed = vel.length();
-  const sway  = Math.sin(Date.now() * 0.004) * SETTINGS.firstPersonSway * Math.min(speed / 20, 1);
-  _camera.rotateZ(sway * dt * 3);
+  // ✅ Removed roll sway (caused sideways nausea)
+  // (If you ever want a tiny sway later, we can add a super gentle one.)
 }
