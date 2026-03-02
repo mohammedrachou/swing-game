@@ -1,64 +1,101 @@
 /**
  * settings.js
  * ─────────────────────────────────────────────────────
- * Single source of truth for every tunable constant.
- * Change values here; nothing else needs to be touched.
- *
- * Units: metres, seconds, m/s unless noted.
+ * SAFE + SMOOTH VERSION
+ * Prevents insane acceleration and motion sickness
+ * while keeping fast, satisfying swing movement.
  */
 
 export const SETTINGS = {
 
   // ── Physics ───────────────────────────────────────
-  gravity:            -28,    // downward acceleration (m/s²)
-  airDrag:            0.012,  // fractional velocity loss per frame (0 = frictionless)
-  airControlForce:    18,     // WASD steering acceleration while airborne
-  airControlMax:      22,     // max speed contribution from air steering
+  gravity:            -28,
+
+  // MUCH higher drag to prevent runaway speed
+  airDrag:            0.045,
+
+  airControlForce:    16,
+  airControlMax:      18,
+
+  // HARD SPEED LIMIT
+  maxSpeed:           55,
+
 
   // ── Rope / Swing ──────────────────────────────────
-  ropeStiffness:      6.5,    // spring constant pulling player toward anchor
-  ropeDamping:        0.18,   // energy absorbed per constraint solve (0–1)
-  maxRopeLength:      80,     // longest allowed tether
-  minRopeLength:      4,      // shortest allowed tether (can't reel in past this)
-  ropeShortenSpeed:   14,     // reel-in rate when holding W while grappled
-  ropeExtendSpeed:    18,     // extend rate when holding S while grappled
-  grappleRange:       150,    // max distance to a valid anchor point
+
+  // Slightly softer so it doesn't violently accelerate
+  ropeStiffness:      5.2,
+
+  ropeDamping:        0.22,
+
+  maxRopeLength:      75,
+  minRopeLength:      4,
+
+  ropeShortenSpeed:   12,
+  ropeExtendSpeed:    15,
+
+  grappleRange:       140,
+
 
   // ── Feel / Assist ─────────────────────────────────
-  swingBoostFactor:   1.08,   // energy multiplier per frame while swinging downward
-                              // (>1 = "pump assist" so swings don't die out)
-  releaseBoostMult:   1.04,   // velocity scalar applied the instant a grapple detaches
-  boostImpulse:       22,     // m/s added by the SPACE boost
-  boostCooldown:      1.4,    // seconds until boost is ready again
-  boostDuration:      0.18,   // seconds the boost force is spread across
+
+  // CRITICAL FIX: was 1.08 (insanely high)
+  swingBoostFactor:   1.005,
+
+  // release boost reduced
+  releaseBoostMult:   1.01,
+
+  // boost massively reduced
+  boostImpulse:       10,
+
+  boostCooldown:      1.0,
+  boostDuration:      0.22,
+
 
   // ── Camera ────────────────────────────────────────
-  thirdPersonDist:    9,      // ideal follow distance behind player
-  thirdPersonHeight:  3.2,    // height above player in 3rd-person
-  camSpringStiffness: 7.0,    // how quickly the 3P camera catches up
-  camSpringDamping:   0.72,   // smoothing factor (0 = instant, 1 = frozen)
-  firstPersonSway:    0.06,   // head-sway intensity in 1st-person
-  mouseSensitivity:   0.002,  // radians per pixel of mouse movement
+
+  // farther camera = less motion sickness
+  thirdPersonDist:    11,
+
+  thirdPersonHeight:  3.6,
+
+  camSpringStiffness: 6.0,
+  camSpringDamping:   0.75,
+
+  firstPersonSway:    0.0,
+
+  mouseSensitivity:   0.002,
+
 
   // ── Speed Effects ─────────────────────────────────
-  speedFOVMin:           68,  // FOV (degrees) at low speed
-  speedFOVMax:           95,  // FOV at peak speed
-  speedFOVThreshold:     25,  // speed where FOV begins widening
-  speedFOVPeakSpeed:     80,  // speed where FOV reaches maximum
-  speedFOVLerpRate:      0.08,// how quickly FOV changes (0–1 per frame)
 
-  speedLinesThreshold:   20,  // speed to start showing streak lines
-  speedLinesMax:         70,  // speed where streaks are at full intensity
+  // MUCH safer FOV
+  speedFOVMin:        70,
+  speedFOVMax:        80,
 
-  speedShakeThreshold:   30,  // speed to start screen shake
-  speedShakeMax:         0.18,// maximum shake displacement (metres)
-  screenShakeAmount:     1.0, // global shake multiplier (set 0 to disable)
-  shakeRampUp:           8,   // how fast shake intensity builds (units/s)
-  shakeDecay:            0.85,// per-frame multiplier when below threshold
+  speedFOVThreshold:  20,
+  speedFOVPeakSpeed:  55,
+
+  speedFOVLerpRate:   0.06,
+
+  speedLinesThreshold:   22,
+  speedLinesMax:         55,
+
+  // DISABLED SHAKE
+  speedShakeThreshold:   999,
+  speedShakeMax:         0,
+  screenShakeAmount:     0,
+
+  shakeRampUp:           0,
+  shakeDecay:            0,
+
 
   // ── World ─────────────────────────────────────────
-  groundY:               0,   // Y position of the ground plane
-  buildingSpawnRadius:   220, // distance from player at which buildings spawn
-  buildingDespawnRadius: 300, // distance at which buildings are removed
-  buildingsTarget:       90,  // pool size — how many buildings to keep alive
+
+  groundY:               0,
+
+  buildingSpawnRadius:   220,
+  buildingDespawnRadius: 300,
+
+  buildingsTarget:       90,
 };
