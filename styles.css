@@ -1,0 +1,211 @@
+/* ── Reset ──────────────────────────────────────────── */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: #000;
+  overflow: hidden;
+  font-family: 'Courier New', monospace;
+  user-select: none;
+}
+
+/* ── HUD root ───────────────────────────────────────── */
+#hud {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* ── Speed display ──────────────────────────────────── */
+#speed-display {
+  position: absolute;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+}
+
+#speed-value {
+  font-size: 42px;
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 0 0 20px rgba(255,255,255,0.5);
+  letter-spacing: -2px;
+  transition: color 0.2s;
+}
+
+#speed-value.fast       { color: #ff6b35; text-shadow: 0 0 30px rgba(255,107,53,0.8); }
+#speed-value.ludicrous  { color: #ff0080; text-shadow: 0 0 40px rgba(255,0,128,1);    }
+
+#speed-label {
+  font-size: 10px;
+  letter-spacing: 4px;
+  color: rgba(255,255,255,0.4);
+  text-transform: uppercase;
+  margin-top: -4px;
+}
+
+/* ── Tether indicators ──────────────────────────────── */
+#tether-hud {
+  position: absolute;
+  bottom: 90px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+.tether-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.tether-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.3);
+  transition: all 0.1s;
+}
+
+.tether-dot.active {
+  border-color: #00ff88;
+  background:   #00ff88;
+  box-shadow:   0 0 12px #00ff88;
+}
+
+.tether-label        { font-size: 9px; letter-spacing: 2px; color: rgba(255,255,255,0.3); }
+.tether-label.active { color: #00ff88; }
+
+/* ── Camera mode label ──────────────────────────────── */
+#cam-mode {
+  position: absolute;
+  top: 20px; right: 20px;
+  font-size: 9px;
+  letter-spacing: 3px;
+  color: rgba(255,255,255,0.35);
+  text-transform: uppercase;
+}
+
+/* ── Controls panel ─────────────────────────────────── */
+#controls-panel {
+  position: absolute;
+  top: 20px; left: 20px;
+  font-size: 10px;
+  line-height: 1.9;
+  color: rgba(255,255,255,0.35);
+  letter-spacing: 1px;
+}
+
+#controls-panel .key {
+  display: inline-block;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 3px;
+  padding: 0 5px;
+  font-size: 9px;
+  min-width: 22px;
+  text-align: center;
+  margin-right: 4px;
+}
+
+/* ── Crosshair ──────────────────────────────────────── */
+#crosshair {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+}
+#crosshair::before, #crosshair::after {
+  content: '';
+  position: absolute;
+  background: rgba(255,255,255,0.6);
+}
+#crosshair::before { width: 12px; height: 1px; top: 0;   left: -6px; }
+#crosshair::after  { width: 1px; height: 12px; top: -6px; left: 0;   }
+
+/* ── Boost cooldown bar ─────────────────────────────── */
+#boost-indicator {
+  position: absolute;
+  bottom: 30px; right: 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+#boost-bar-bg {
+  width: 4px;
+  height: 50px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+#boost-bar {
+  width: 100%;
+  background: #00aaff;
+  border-radius: 2px;
+  position: absolute;
+  bottom: 0;
+}
+
+#boost-label {
+  font-size: 8px;
+  letter-spacing: 2px;
+  color: rgba(255,255,255,0.3);
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+
+/* ── Vignette ───────────────────────────────────────── */
+#vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.6) 100%);
+  pointer-events: none;
+}
+
+/* ── Loading / start screen ─────────────────────────── */
+#loading {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  transition: opacity 0.5s;
+  cursor: pointer;
+}
+
+#loading h1 {
+  font-size: 48px;
+  font-weight: 900;
+  letter-spacing: -2px;
+  color: #fff;
+  margin-bottom: 8px;
+}
+
+#loading p {
+  font-size: 11px;
+  letter-spacing: 6px;
+  color: rgba(255,255,255,0.3);
+  text-transform: uppercase;
+}
+
+#click-to-start {
+  margin-top: 40px;
+  font-size: 11px;
+  letter-spacing: 4px;
+  color: rgba(255,255,255,0.5);
+  animation: blink 1.2s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 0.5; }
+  50%       { opacity: 1;   }
+}

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WEB RUNNER</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- ── Loading / start screen ─────────────────────────── -->
+  <div id="loading">
+    <h1>WEB RUNNER</h1>
+    <p>Swing. Soar. Never stop.</p>
+    <div id="click-to-start">CLICK TO PLAY</div>
+  </div>
+
+  <!-- ── HUD (hidden until game starts) ────────────────── -->
+  <div id="hud" style="display:none;">
+
+    <!-- Darkening vignette around screen edges -->
+    <div id="vignette"></div>
+
+    <!-- 2D speed-line streaks drawn by fx.js -->
+    <canvas id="speed-lines-canvas" style="position:absolute;inset:0;pointer-events:none;opacity:0;"></canvas>
+
+    <!-- Controls reference -->
+    <div id="controls-panel">
+      <div><span class="key">Q</span> / <span class="key">LMB</span> Left grapple</div>
+      <div><span class="key">E</span> / <span class="key">RMB</span> Right grapple</div>
+      <div><span class="key">WASD</span> Air steer</div>
+      <div><span class="key">SPACE</span> Boost</div>
+      <div><span class="key">V</span> Toggle camera</div>
+      <div><span class="key">ESC</span> Unlock mouse</div>
+    </div>
+
+    <!-- Active camera mode label -->
+    <div id="cam-mode">3RD PERSON</div>
+
+    <!-- Crosshair -->
+    <div id="crosshair"></div>
+
+    <!-- Grapple tether indicators -->
+    <div id="tether-hud">
+      <div class="tether-indicator">
+        <div class="tether-dot" id="left-tether-dot"></div>
+        <div class="tether-label" id="left-tether-label">LEFT</div>
+      </div>
+      <div style="width:40px;height:1px;background:rgba(255,255,255,0.1);"></div>
+      <div class="tether-indicator">
+        <div class="tether-dot" id="right-tether-dot"></div>
+        <div class="tether-label" id="right-tether-label">RIGHT</div>
+      </div>
+    </div>
+
+    <!-- Speed readout -->
+    <div id="speed-display">
+      <div id="speed-value">0</div>
+      <div id="speed-label">KM/H</div>
+    </div>
+
+    <!-- Boost cooldown bar -->
+    <div id="boost-indicator">
+      <div id="boost-bar-bg" style="position:relative;">
+        <div id="boost-bar" style="height:100%;"></div>
+      </div>
+      <div id="boost-label">BOOST</div>
+    </div>
+
+  </div><!-- /#hud -->
+
+  <!-- Entry point: game.js imports all other modules -->
+  <script type="module" src="src/game.js"></script>
+
+</body>
+</html>
