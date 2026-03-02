@@ -1,15 +1,13 @@
 /**
  * player.js
  * ─────────────────────────────────────────────────────
- * Player mesh + grapple rope line visuals.
+ * Player mesh + grapple rope visuals.
  * Reads from physics.state — never writes physics data.
  *
- * PUBLIC API
- * ──────────
- * init(scene)              — create and add all meshes
- * update(physicsState, camMode)
- *                          — sync mesh transforms, update rope lines
- * flashAnchor(pos, side)   — quick visual pulse at a grapple attachment point
+ * Rope visibility goals:
+ * - ALWAYS visible (draw on top of buildings)
+ * - Thick + bright (uses TubeGeometry instead of thin Line)
+ * - Works in first-person (rope still shows)
  */
 
 import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.js';
@@ -19,53 +17,58 @@ import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/thr
 let _scene;
 let _playerGroup;
 
-// Rope lines — one per grapple side
-const _ropeLines = {
-  left:  null,
-  right: null,
+// Rope visuals per side
+const _rope = {
+  left:  { mesh: null, mat: null },
+  right: { mesh: null, mat: null },
 };
 
-// Rope colours
+// Colors (still different per side, but bright)
 const ROPE_COLORS = {
-  left:  0x00ffaa,
-  right: 0xff4488,
+  left:  0x7dfff1,
+  right: 0xff9ad0,
 };
+
+// Rope thickness (world units)
+const ROPE_RADIUS = 0.06; // increase if you want thicker (0.08–0.12)
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
-/**
- * Build player mesh and rope lines and add them to the scene.
- * @param {THREE.Scene} scene
- */
 export function init(scene) {
   _scene = scene;
   _playerGroup = _buildPlayerMesh();
   scene.add(_playerGroup);
 
-  // Create one line per grapple side
+  // Create rope meshes (TubeGeometry) so thickness works in browsers
   for (const side of ['left', 'right']) {
-    const mat  = new THREE.LineBasicMaterial({
-      color:       ROPE_COLORS[side],
+    const mat = new THREE.MeshBasicMaterial({
+      color: ROPE_COLORS[side],
       transparent: true,
-      opacity:     0.85,
+      opacity: 0.95,
     });
-    const geo  = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]);
-    const line = new THREE.Line(geo, mat);
-    line.visible = false;
-    scene.add(line);
-    _ropeLines[side] = line;
+
+    // Always visible on top
+    mat.depthTest = false;
+    mat.depthWrite = false;
+
+    // Start with a tiny rope (will be replaced each frame)
+    const geom = _makeRopeGeometry(new THREE.Vector3(), new THREE.Vector3(0, 0.01, 0));
+    const mesh = new THREE.Mesh(geom, mat);
+
+    // Draw last
+    mesh.renderOrder = 999;
+    mesh.visible = false;
+
+    scene.add(mesh);
+    _rope[side].mesh = mesh;
+    _rope[side].mat = mat;
   }
 }
 
-/**
- * Sync mesh position/orientation and rope geometry each frame.
- * @param {import('./physics.js').state} physicsState
- * @param {'first'|'third'} camMode
- */
 export function update(physicsState, camMode) {
   const { pos, vel, grapple } = physicsState;
 
-  // Sync position
+  // Sync player body
   _playerGroup.position.copy(pos);
 
   // Orient body toward velocity direction
@@ -73,43 +76,47 @@ export function update(physicsState, camMode) {
     _playerGroup.lookAt(pos.clone().add(vel.clone().normalize()));
   }
 
-  // Hide body in first-person
+  // Hide body in first-person, but DO NOT hide rope
   _playerGroup.visible = camMode !== 'first';
 
-  // Update rope line endpoints
+  // Update rope meshes
   for (const side of ['left', 'right']) {
-    const g    = grapple[side];
-    const line = _ropeLines[side];
+    const g = grapple[side];
+    const ropeMesh = _rope[side].mesh;
 
     if (!g.active) {
-      line.visible = false;
+      ropeMesh.visible = false;
       continue;
     }
 
-    line.visible = true;
-    line.geometry.setFromPoints([pos.clone(), g.anchor.clone()]);
+    ropeMesh.visible = true;
+
+    // Replace geometry each frame (simple + reliable)
+    ropeMesh.geometry.dispose();
+    ropeMesh.geometry = _makeRopeGeometry(pos.clone(), g.anchor.clone());
   }
 }
 
-/**
- * Spawn a brief sphere pulse at the grapple attachment point.
- * @param {THREE.Vector3} pos
- * @param {'left'|'right'} side
- */
 export function flashAnchor(pos, side) {
   const mesh = new THREE.Mesh(
-    new THREE.SphereGeometry(0.6, 6, 4),
+    new THREE.SphereGeometry(0.7, 8, 6),
     new THREE.MeshBasicMaterial({ color: ROPE_COLORS[side] })
   );
   mesh.position.copy(pos);
+  mesh.renderOrder = 999;
   _scene.add(mesh);
 
-  let life = 0.25; // seconds
+  let life = 0.25;
   const tick = () => {
     life -= 0.016;
-    if (life <= 0) { _scene.remove(mesh); return; }
+    if (life <= 0) {
+      _scene.remove(mesh);
+      mesh.geometry.dispose();
+      mesh.material.dispose();
+      return;
+    }
     const t = life / 0.25;
-    mesh.scale.setScalar(0.3 + t * 0.7);
+    mesh.scale.setScalar(0.25 + t * 0.9);
     requestAnimationFrame(tick);
   };
   tick();
@@ -117,11 +124,16 @@ export function flashAnchor(pos, side) {
 
 // ── Private helpers ───────────────────────────────────────────────────────────
 
-/** Build a simple capsule-shaped player out of primitive geometries. */
+function _makeRopeGeometry(a, b) {
+  // Small curve from a to b
+  const curve = new THREE.CatmullRomCurve3([a, b]);
+  // segments, radius, radial segments
+  return new THREE.TubeGeometry(curve, 12, ROPE_RADIUS, 8, false);
+}
+
 function _buildPlayerMesh() {
   const group = new THREE.Group();
 
-  // Body
   group.add(Object.assign(
     new THREE.Mesh(
       new THREE.CylinderGeometry(0.4, 0.4, 1.0, 8),
@@ -130,7 +142,6 @@ function _buildPlayerMesh() {
     { castShadow: true }
   ));
 
-  // Head
   const head = new THREE.Mesh(
     new THREE.SphereGeometry(0.38, 8, 6),
     new THREE.MeshPhongMaterial({ color: 0xffd0a0, shininess: 60 })
@@ -139,7 +150,6 @@ function _buildPlayerMesh() {
   head.castShadow = true;
   group.add(head);
 
-  // Legs
   const legMat = new THREE.MeshPhongMaterial({ color: 0x3050c0, shininess: 40 });
   const legGeo = new THREE.CylinderGeometry(0.18, 0.18, 0.8, 6);
 
