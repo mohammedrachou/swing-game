@@ -209,3 +209,12 @@ body {
   0%, 100% { opacity: 0.5; }
   50%       { opacity: 1;   }
 }
+/* FORCE DAYTIME: remove dark vignette + speed overlay darkness */
+#vignette {
+  display: none !important;
+  opacity: 0 !important;
+}
+
+#speed-lines-canvas {
+  opacity: 0 !important; /* you can turn this back on later */
+}
